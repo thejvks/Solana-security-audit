@@ -1,0 +1,60 @@
+{
+  "target": "9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin",
+  "target_type": "wallet",
+  "score": 100,
+  "level": "critical",
+  "findings": [
+    {
+      "category": "freeze_authority",
+      "label": "Active freeze authority",
+      "severity": "high",
+      "weight": 20,
+      "explanation": "One or more token mints held by this wallet retain an active freeze authority, allowing the issuer to freeze the associated token accounts at any time.",
+      "recommendation": "Confirm the issuer is trusted before holding meaningful balances; freezeable tokens can be locked without your consent."
+    },
+    {
+      "category": "mint_authority",
+      "label": "Active mint authority",
+      "severity": "high",
+      "weight": 20,
+      "explanation": "One or more mints retain an active mint authority and can increase supply, diluting existing holders.",
+      "recommendation": "Treat tokens with a live mint authority as inflationary and verify the authority is a trusted multisig or has been revoked."
+    },
+    {
+      "category": "risky_delegate",
+      "label": "Active token delegate",
+      "severity": "high",
+      "weight": 15,
+      "explanation": "Token accounts have an active delegate with a non-zero approved amount, meaning a third party can move those tokens without further approval.",
+      "recommendation": "Revoke unused delegates (e.g. `spl-token revoke`); stale approvals are a common drain vector.",
+      "detail": "2 token account(s) with an active delegate"
+    },
+    {
+      "category": "close_authority",
+      "label": "Non-owner close authority",
+      "severity": "medium",
+      "weight": 10,
+      "explanation": "Token accounts have a close authority set to an address other than the owner, which can close the account and reclaim its rent lamports.",
+      "recommendation": "Review why a third party holds close authority and reset it if it was not set intentionally."
+    },
+    {
+      "category": "upgradeable_program",
+      "label": "Upgradeable program exposure",
+      "severity": "medium",
+      "weight": 15,
+      "explanation": "The wallet has interacted with upgradeable programs whose upgrade authority can change program logic at any time.",
+      "recommendation": "Prefer protocols with immutable programs or timelocked, multisig-controlled upgrade authorities.",
+      "detail": "3 upgradeable program(s) in recent activity"
+    },
+    {
+      "category": "malicious_address",
+      "label": "Known malicious address interaction",
+      "severity": "critical",
+      "weight": 25,
+      "explanation": "An address linked to this wallet (delegate, close authority, or program authority) matches a known exploit or scam address.",
+      "recommendation": "Revoke any approvals to the flagged address immediately and move remaining funds to a fresh wallet.",
+      "detail": "1 known malicious address match(es)"
+    }
+  ],
+  "generated_at": "2026-06-06T09:16:03Z"
+}

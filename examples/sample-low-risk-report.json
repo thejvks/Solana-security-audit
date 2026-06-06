@@ -1,0 +1,18 @@
+{
+  "target": "7Np41oeYqPefeNQEHSv1UDhYrehxin3NStELsSKCT4K2",
+  "target_type": "wallet",
+  "score": 10,
+  "level": "low",
+  "findings": [
+    {
+      "category": "newly_deployed",
+      "label": "Recently deployed program",
+      "severity": "low",
+      "weight": 10,
+      "explanation": "The wallet interacted with upgradeable programs deployed inside the recent-deployment window, which have limited track record.",
+      "recommendation": "Be cautious with newly deployed programs; exploits frequently target freshly launched, unaudited code.",
+      "detail": "1 program(s) deployed recently"
+    }
+  ],
+  "generated_at": "2026-06-06T09:14:52Z"
+}

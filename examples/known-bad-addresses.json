@@ -1,0 +1,15 @@
+{
+  "description": "Curated list of known Solana exploit/scam addresses used by the malicious-address check. Sourced from public exploit post-mortems and on-chain forensics. This list is illustrative and not exhaustive; see the roadmap for plans to back it with a maintained threat feed.",
+  "updated": "2026-06-06",
+  "addresses": [
+    { "address": "CxegPrfn2ge5dNiQberUrQJkHCcimeR4VXkeawcFBBka", "label": "Wormhole exploiter", "incident": "Wormhole bridge exploit (2022)" },
+    { "address": "4yx1NJ4Vqf2zT1oVLk4SySBhhDJXmXFt88ncm4gPxtL", "label": "Mango Markets exploiter", "incident": "Mango Markets oracle manipulation (2022)" },
+    { "address": "Esmx2QjmDZMjJ15yBJ2nhqisjEt7Gqro4jSkofdoVsvY", "label": "Crema Finance exploiter", "incident": "Crema Finance flash-loan exploit (2022)" },
+    { "address": "6D7fgBuVnL7FRoZocfkiz7T1TYEKSbbREnWnuaSzpvGV", "label": "Cashio exploiter", "incident": "Cashio infinite-mint exploit (2022)" },
+    { "address": "HtHYnnLBaBYaKkqJMTHf7nyFCAjjQFELcQuHqWssB7Gn", "label": "Slope wallet drainer", "incident": "Slope wallet seed-phrase leak (2022)" },
+    { "address": "Cft4EEMTiC3pBCiiVAAXiPvAuGbKRiAe2rGBzEoQbJxe", "label": "Nirvana Finance exploiter", "incident": "Nirvana Finance flash-loan exploit (2022)" },
+    { "address": "AgkYBGVKbFakvs4iG2pEfEnsgNdyMqNMSaoLCLwm1EAt", "label": "Raydium exploiter", "incident": "Raydium pool authority compromise (2022)" },
+    { "address": "DriFtupJYLTosbwoN8koMbEYSx54aFAVLddWsbksjwg7d", "label": "Drift Protocol exploiter", "incident": "Drift-linked exploit address" },
+    { "address": "FhVFRJhCdi8qFbc8MFHV3Dv67mi6aKKefThYMDmzSD7P", "label": "Orbit Bridge exploiter", "incident": "Orbit bridge exploit" }
+  ]
+}

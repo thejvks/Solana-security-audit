@@ -1,0 +1,68 @@
+$ wallet-audit scan 9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin --rpc https://your-rpc-endpoint.com
+
+  WALLET AUDIT
+  Solana wallet security scanner
+────────────────────────────────────────────────────────────
+  Target: 9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin
+  RPC:    https://your-rpc-endpoint.com
+
+════════════════════════════════════════════════════════════
+  Risk Score: 100/100  [CRITICAL]
+────────────────────────────────────────────────────────────
+  Tokens: 142  |  Risky: 3  |  Upgradeable: 3  |  Mint risks: 11  |  Empty: 18
+
+  FINDINGS
+────────────────────────────────────────────────────────────
+  [HIGH] Active freeze authority (+20)
+        One or more token mints held by this wallet retain an active freeze authority, allowing the issuer to freeze the associated token accounts at any time.
+        → Confirm the issuer is trusted before holding meaningful balances; freezeable tokens can be locked without your consent.
+
+  [HIGH] Active mint authority (+20)
+        One or more mints retain an active mint authority and can increase supply, diluting existing holders.
+        → Treat tokens with a live mint authority as inflationary and verify the authority is a trusted multisig or has been revoked.
+
+  [HIGH] Active token delegate (+15)
+        2 token account(s) with an active delegate
+        Token accounts have an active delegate with a non-zero approved amount, meaning a third party can move those tokens without further approval.
+        → Revoke unused delegates (e.g. `spl-token revoke`); stale approvals are a common drain vector.
+
+  [MEDIUM] Non-owner close authority (+10)
+        Token accounts have a close authority set to an address other than the owner, which can close the account and reclaim its rent lamports.
+        → Review why a third party holds close authority and reset it if it was not set intentionally.
+
+  [MEDIUM] Upgradeable program exposure (+15)
+        3 upgradeable program(s) in recent activity
+        The wallet has interacted with upgradeable programs whose upgrade authority can change program logic at any time.
+        → Prefer protocols with immutable programs or timelocked, multisig-controlled upgrade authorities.
+
+  [CRITICAL] Known malicious address interaction (+25)
+        1 known malicious address match(es)
+        An address linked to this wallet (delegate, close authority, or program authority) matches a known exploit or scam address.
+        → Revoke any approvals to the flagged address immediately and move remaining funds to a fresh wallet.
+
+  MALICIOUS ADDRESSES
+────────────────────────────────────────────────────────────
+  !! Mango Markets exploiter (delegate)
+     https://solscan.io/account/4yx1NJ4Vqf2zT1oVLk4SySBhhDJXmXFt88ncm4gPxtL
+
+  ACTIVE DELEGATES
+────────────────────────────────────────────────────────────
+  > mint EPjF…Dt1v  bal 2500.0000  delegate 4yx1…PxtL
+  > mint DezX…263j  bal 18000.0000  delegate 8kZr…m4Qn
+
+  NON-OWNER CLOSE AUTHORITIES
+────────────────────────────────────────────────────────────
+  > mint Es9v…sBon  close 6Hgv…2nLp
+
+  UPGRADEABLE PROGRAMS (3 of 27 interacted programs)
+────────────────────────────────────────────────────────────
+  > JUP6…rWqU (12x)
+     admin 9Bv4…aQp1
+  > whir…Pdca (5x)
+     admin GHHi…3xZ2
+  > meta…Q5gA (2x)
+     admin 11111…1111
+
+  EMPTY 18 empty accounts, ~0.0367 SOL reclaimable
+
+════════════════════════════════════════════════════════════
