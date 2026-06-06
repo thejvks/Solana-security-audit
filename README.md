@@ -136,6 +136,23 @@ cargo run -- token <TOKEN_MINT>
 
 With the release binary, replace `cargo run --` with `wallet-audit`.
 
+### Using a dedicated RPC endpoint
+
+Full **wallet** scans call `getProgramAccounts`, which the public endpoint
+(`api.mainnet-beta.solana.com`) rate-limits or disables — so those scans time out on it.
+Token-mint scans work on the public RPC, but wallet scans need a dedicated endpoint from a
+provider such as Helius, Alchemy, Corvus, or Orbit:
+
+```bash
+# export the endpoint once so the key stays out of shell history and screenshots
+export RPC_URL="https://your-provider-endpoint/with-your-key"
+
+wallet-audit scan <WALLET_ADDRESS> --rpc "$RPC_URL"
+```
+
+The API key in the endpoint is masked in all console output (printed as `…/****`), so scan
+results are safe to share or screenshot.
+
 ## CLI examples
 
 A token scan of USDC (which keeps both a freeze and a mint authority):
@@ -185,18 +202,21 @@ Full fixtures: [`examples/sample-low-risk-report.json`](examples/sample-low-risk
 
 ## Screenshots
 
-Screenshots live in [`assets/screenshots/`](assets/screenshots). Suggested captures (add them and reference here):
+**Wallet scan** — a full wallet audit: risk score, findings, and upgradeable-program exposure.
 
-- `terminal-scan.png` — a full `wallet-audit scan` run with findings
-- `json-report.png` — a `--json` report or a saved `report.json`
-- `risk-score.png` — the score header and findings block
-- `ci-passing.png` — the GitHub Actions run, all checks green
+![Wallet scan](assets/screenshots/terminal-scan.png)
 
-To embed one once added:
+**Token risk score** — scanning a token mint (USDC) that retains active freeze and mint authorities.
 
-```markdown
-![Terminal scan](assets/screenshots/terminal-scan.png)
-```
+![Token risk score](assets/screenshots/risk-score.png)
+
+**JSON report** — machine-readable output for pipelines and integrations.
+
+![JSON report](assets/screenshots/json-report.png)
+
+**Continuous integration** — fmt, clippy, tests, and the release build passing on every push.
+
+![CI passing](assets/screenshots/ci-passing.png)
 
 The architecture diagram renders directly from the Mermaid block above on GitHub.
 
