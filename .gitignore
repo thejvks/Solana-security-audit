@@ -1,5 +1,4 @@
 /target
 .env
 .env.local
-.claude/
 *.exe

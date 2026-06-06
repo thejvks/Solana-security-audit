@@ -1,261 +1,240 @@
+//! Human-readable terminal output. Colors map to risk: green is safe, red is bad.
+
 use colored::Colorize;
 
-use crate::malicious::{MaliciousMatch, RecentProgram};
-use crate::mint_risk::MintRiskInfo;
-use crate::program_exposure::ProgramExposure;
-use crate::scanner::TokenScanResult;
-use crate::scoring::ScoreResult;
+use crate::risk::{RiskLevel, RiskReport};
+use crate::scanner::{TokenMintScan, WalletScan};
+
+const WIDTH: usize = 60;
 
 fn short(addr: &str) -> String {
-    if addr.len() > 8 {
-        format!("{}...{}", &addr[..4], &addr[addr.len() - 4..])
+    if addr.len() > 10 {
+        format!("{}…{}", &addr[..4], &addr[addr.len() - 4..])
     } else {
         addr.to_string()
     }
 }
 
-fn solscan_url(addr: &str) -> String {
-    format!("https://solscan.io/account/{}", addr)
+fn solscan(addr: &str) -> String {
+    format!("https://solscan.io/account/{addr}")
+}
+
+fn rule(ch: &str, n: usize) -> String {
+    ch.repeat(n).dimmed().to_string()
 }
 
 pub fn print_banner() {
     println!();
+    println!("  {} {}", "WALLET".green().bold(), "AUDIT".white().bold());
+    println!("  {}", "Solana wallet security scanner".dimmed());
+    println!("{}", rule("─", WIDTH));
+}
+
+pub fn print_scanning(target: &str, rpc: &str) {
+    println!("  Target: {}", target.green());
+    println!("  RPC:    {}\n", rpc.dimmed());
+}
+
+fn colored_score(report: &RiskReport) -> String {
+    let text = format!("{}/100", report.score);
+    match report.level {
+        RiskLevel::Minimal | RiskLevel::Low => text.green().bold().to_string(),
+        RiskLevel::Medium => text.yellow().bold().to_string(),
+        RiskLevel::High | RiskLevel::Critical => text.red().bold().to_string(),
+    }
+}
+
+fn colored_level(level: RiskLevel) -> String {
+    match level {
+        RiskLevel::Minimal | RiskLevel::Low => level.as_str().green().to_string(),
+        RiskLevel::Medium => level.as_str().yellow().to_string(),
+        RiskLevel::High | RiskLevel::Critical => level.as_str().red().to_string(),
+    }
+}
+
+fn print_score_block(report: &RiskReport) {
+    println!("{}", rule("═", WIDTH));
     println!(
-        "  {} {}",
-        "WALLET".green().bold(),
-        "AUDIT".white().bold()
+        "  Risk Score: {}  [{}]",
+        colored_score(report),
+        colored_level(report.level)
     );
+    println!("{}", rule("─", WIDTH));
+}
+
+fn print_findings(report: &RiskReport) {
+    if report.findings.is_empty() {
+        println!("  {}", "No risk signals detected.".green());
+        println!();
+        return;
+    }
+
+    println!("  {}", "FINDINGS".white().bold());
+    println!("{}", rule("─", WIDTH));
+    for finding in &report.findings {
+        let sev = match finding.severity {
+            crate::risk::Severity::Critical | crate::risk::Severity::High => {
+                finding.severity.as_str().red().bold()
+            }
+            crate::risk::Severity::Medium => finding.severity.as_str().yellow().bold(),
+            _ => finding.severity.as_str().normal(),
+        };
+        println!(
+            "  [{}] {} (+{})",
+            sev,
+            finding.label.white().bold(),
+            finding.weight
+        );
+        if let Some(detail) = &finding.detail {
+            println!("        {}", detail.dimmed());
+        }
+        println!("        {}", finding.explanation.dimmed());
+        println!("        {} {}", "→".cyan(), finding.recommendation);
+        println!();
+    }
+}
+
+pub fn print_wallet_report(scan: &WalletScan, report: &RiskReport) {
+    let upgradeable = scan.programs.iter().filter(|p| p.is_upgradeable).count();
+
+    print_score_block(report);
     println!(
-        "  {}",
-        "Solana Wallet Security Scanner".dimmed()
-    );
-    println!("{}", "─".repeat(50).dimmed());
-}
-
-pub fn print_phase(msg: &str) {
-    print!("  {} {}", ">>".cyan(), msg);
-}
-
-pub fn print_done(msg: &str) {
-    println!("\r  {} {}", "OK".green().bold(), msg);
-}
-
-pub fn print_results(
-    token_scan: &TokenScanResult,
-    programs: &[ProgramExposure],
-    mint_risks: &[MintRiskInfo],
-    malicious: &[MaliciousMatch],
-    recent: &[RecentProgram],
-    score: &ScoreResult,
-) {
-    let upgradeable_count = programs.iter().filter(|p| p.is_upgradeable).count();
-
-    // Score header
-    println!("{}", "═".repeat(50).dimmed());
-    let score_color = if score.score >= 80 {
-        format!("{}", score.score).green().bold()
-    } else if score.score >= 50 {
-        format!("{}", score.score).yellow().bold()
-    } else {
-        format!("{}", score.score).red().bold()
-    };
-
-    let label = if score.score >= 80 {
-        "HEALTHY".green()
-    } else if score.score >= 50 {
-        "AT RISK".yellow()
-    } else {
-        "CRITICAL".red()
-    };
-
-    println!("  Wallet Health: {}/100  [{}]", score_color, label);
-    println!("{}", "─".repeat(50).dimmed());
-
-    // Stats grid
-    println!(
-        "  Tokens: {}  |  Risky: {}  |  Upgradeable: {}  |  Mint Risks: {}  |  Empty: {}",
-        format!("{}", token_scan.all_accounts.len()).white().bold(),
-        format!("{}", token_scan.risky_delegates.len() + token_scan.risky_close_authorities.len())
+        "  Tokens: {}  |  Risky: {}  |  Upgradeable: {}  |  Mint risks: {}  |  Empty: {}",
+        scan.token_scan
+            .all_accounts
+            .len()
+            .to_string()
+            .white()
+            .bold(),
+        (scan.token_scan.risky_delegates.len() + scan.token_scan.risky_close_authorities.len())
+            .to_string()
             .red()
             .bold(),
-        format!("{}", upgradeable_count).yellow().bold(),
-        format!("{}", mint_risks.len()).yellow().bold(),
-        format!("{}", token_scan.empty_accounts.len()).dimmed(),
+        upgradeable.to_string().yellow().bold(),
+        scan.token_scan.mint_risks.len().to_string().yellow().bold(),
+        scan.token_scan.empty_accounts.len().to_string().dimmed(),
     );
     println!();
 
-    // Score breakdown
-    if !score.breakdown.is_empty() {
-        println!("  {}", "SCORE BREAKDOWN".white().bold());
-        println!("  {}", "─".repeat(46).dimmed());
-        for item in &score.breakdown {
-            println!(
-                "  {:.<36} {}",
-                format!("  {} ", item.category).dimmed(),
-                format!("-{}", item.deduction).red(),
-            );
-            println!("  {}", format!("    {}", item.details).dimmed());
-        }
-        println!();
-    }
+    print_findings(report);
 
-    // Malicious alerts
-    if !malicious.is_empty() {
-        println!(
-            "  {}",
-            "!! MALICIOUS ADDRESSES DETECTED !!".red().bold()
-        );
-        println!("  {}", "─".repeat(46).dimmed());
-        for m in malicious {
+    if !scan.malicious_matches.is_empty() {
+        println!("  {}", "MALICIOUS ADDRESSES".red().bold());
+        println!("{}", rule("─", WIDTH));
+        for m in &scan.malicious_matches {
             println!(
                 "  {} {} ({})",
                 "!!".red().bold(),
                 m.label.red(),
-                m.context.yellow(),
+                m.context.yellow()
             );
-            println!("     {}", solscan_url(&m.address).dimmed());
+            println!("     {}", solscan(&m.address).dimmed());
         }
         println!();
     }
 
-    // Recently deployed programs
-    if !recent.is_empty() {
-        println!(
-            "  {}",
-            "RECENTLY DEPLOYED PROGRAMS".yellow().bold()
-        );
-        println!("  {}", "─".repeat(46).dimmed());
-        for r in recent {
+    if !scan.recent_programs.is_empty() {
+        println!("  {}", "RECENTLY DEPLOYED PROGRAMS".yellow().bold());
+        println!("{}", rule("─", WIDTH));
+        for r in &scan.recent_programs {
             println!(
-                "  {} {} — deployed {} days ago",
+                "  {} {} — {:.1} days ago",
                 "NEW".yellow().bold(),
                 short(&r.program_id).white(),
-                format!("{:.1}", r.age_in_days).yellow(),
+                r.age_in_days
             );
-            println!("     {}", solscan_url(&r.program_id).dimmed());
         }
         println!();
     }
 
-    // Risky delegates
-    if !token_scan.risky_delegates.is_empty() {
-        println!(
-            "  {}",
-            "ACTIVE DELEGATES".red().bold()
-        );
-        println!("  {}", "─".repeat(46).dimmed());
-        for acc in &token_scan.risky_delegates {
+    if !scan.token_scan.risky_delegates.is_empty() {
+        println!("  {}", "ACTIVE DELEGATES".red().bold());
+        println!("{}", rule("─", WIDTH));
+        for acc in &scan.token_scan.risky_delegates {
             println!(
-                "  {} Mint: {}  Balance: {}  Delegate: {}",
+                "  {} mint {}  bal {:.4}  delegate {}",
                 ">".red(),
                 short(&acc.mint).white(),
-                format!("{:.4}", acc.balance).white(),
+                acc.balance,
                 short(acc.delegate.as_deref().unwrap_or("?")).yellow(),
             );
-            println!("     {}", solscan_url(acc.delegate.as_deref().unwrap_or("")).dimmed());
         }
         println!();
     }
 
-    // Close authorities
-    if !token_scan.risky_close_authorities.is_empty() {
-        println!(
-            "  {}",
-            "SUSPICIOUS CLOSE AUTHORITIES".yellow().bold()
-        );
-        println!("  {}", "─".repeat(46).dimmed());
-        for acc in &token_scan.risky_close_authorities {
+    if !scan.token_scan.risky_close_authorities.is_empty() {
+        println!("  {}", "NON-OWNER CLOSE AUTHORITIES".yellow().bold());
+        println!("{}", rule("─", WIDTH));
+        for acc in &scan.token_scan.risky_close_authorities {
             println!(
-                "  {} Mint: {}  CloseAuth: {}",
+                "  {} mint {}  close {}",
                 ">".yellow(),
                 short(&acc.mint).white(),
                 short(acc.close_authority.as_deref().unwrap_or("?")).yellow(),
             );
-            println!(
-                "     {}",
-                solscan_url(acc.close_authority.as_deref().unwrap_or("")).dimmed()
-            );
         }
         println!();
     }
 
-    // Program exposure
-    if !programs.is_empty() {
+    if upgradeable > 0 {
         println!(
-            "  {} ({} total, {} upgradeable)",
-            "PROGRAM EXPOSURE".white().bold(),
-            programs.len(),
-            upgradeable_count,
+            "  {} ({} of {} interacted programs)",
+            "UPGRADEABLE PROGRAMS".yellow().bold(),
+            upgradeable,
+            scan.programs.len()
         );
-        println!("  {}", "─".repeat(46).dimmed());
-        for prog in programs {
-            let status = if prog.is_upgradeable {
-                "UPGRADEABLE".yellow().bold()
-            } else {
-                "immutable".green().into()
-            };
+        println!("{}", rule("─", WIDTH));
+        for prog in scan.programs.iter().filter(|p| p.is_upgradeable) {
             println!(
-                "  {} {} [{}] ({}x)",
-                if prog.is_upgradeable {
-                    ">".yellow()
-                } else {
-                    " ".normal()
-                },
-                short(&prog.program_id).white(),
-                status,
-                prog.interaction_count,
-            );
-            if let Some(ref auth) = prog.upgrade_authority {
-                println!(
-                    "     Admin: {}",
-                    solscan_url(auth).dimmed()
-                );
-            }
-        }
-        println!();
-    }
-
-    // Mint risks
-    if !mint_risks.is_empty() {
-        println!(
-            "  {} ({} total)",
-            "MINT RISKS".yellow().bold(),
-            mint_risks.len(),
-        );
-        println!("  {}", "─".repeat(46).dimmed());
-        for (i, risk) in mint_risks.iter().enumerate() {
-            if i >= 10 {
-                println!(
-                    "  {} ...and {} more",
-                    " ".dimmed(),
-                    mint_risks.len() - 10
-                );
-                break;
-            }
-            println!(
-                "  {} {} [FREEZE] Balance: {:.2}",
+                "  {} {} ({}x)",
                 ">".yellow(),
-                short(&risk.mint).white(),
-                risk.total_balance,
+                short(&prog.program_id).white(),
+                prog.interaction_count
             );
-            if let Some(ref auth) = risk.freeze_authority {
-                println!("     Freeze Auth: {}", solscan_url(auth).dimmed());
+            if let Some(auth) = &prog.upgrade_authority {
+                println!("     admin {}", short(auth).dimmed());
             }
         }
         println!();
     }
 
-    // Empty accounts
-    if !token_scan.empty_accounts.is_empty() {
-        let reclaimable = token_scan.empty_accounts.len() as f64 * 0.00203928;
+    if !scan.token_scan.empty_accounts.is_empty() {
+        let reclaimable = scan.token_scan.empty_accounts.len() as f64 * 0.00203928;
         println!(
-            "  {} — {} empty accounts, ~{:.4} SOL reclaimable",
-            "EMPTY ACCOUNTS".dimmed(),
-            token_scan.empty_accounts.len(),
-            reclaimable,
+            "  {} {} empty accounts, ~{:.4} SOL reclaimable",
+            "EMPTY".dimmed(),
+            scan.token_scan.empty_accounts.len(),
+            reclaimable
         );
         println!();
     }
 
-    println!("{}", "═".repeat(50).dimmed());
+    println!("{}", rule("═", WIDTH));
+}
+
+pub fn print_token_report(scan: &TokenMintScan, report: &RiskReport) {
+    print_score_block(report);
+    println!("  Mint:     {}", scan.mint.white());
+    println!("  Decimals: {}", scan.decimals);
+    println!("  Supply:   {:.2}", scan.supply);
+    println!(
+        "  Freeze:   {}",
+        scan.freeze_authority
+            .as_deref()
+            .map(|a| short(a).red().to_string())
+            .unwrap_or_else(|| "none".green().to_string())
+    );
+    println!(
+        "  Mint:     {}",
+        scan.mint_authority
+            .as_deref()
+            .map(|a| short(a).red().to_string())
+            .unwrap_or_else(|| "none".green().to_string())
+    );
+    if let Some(pct) = scan.top_holder_pct {
+        println!("  Top holder: {:.1}% of supply", pct);
+    }
+    println!();
+    print_findings(report);
+    println!("{}", rule("═", WIDTH));
 }

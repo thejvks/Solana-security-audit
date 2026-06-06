@@ -1,19 +1,35 @@
 [package]
 name = "wallet-audit"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
-description = "Solana wallet security audit CLI — scan any wallet for risky delegates, upgradeable programs, freeze authorities, and known exploits"
+description = "Solana wallet security audit CLI — scan wallets, token accounts, and program exposure for risky delegates, mint/freeze authorities, known malicious addresses, and upgradeable programs, then produce a 0-100 risk score and JSON report"
 license = "MIT"
+repository = "https://github.com/thejvks/Solana-security-audit"
+readme = "README.md"
+keywords = ["solana", "security", "audit", "blockchain", "cli"]
+categories = ["command-line-utilities", "cryptography"]
+
+[lib]
+name = "wallet_audit"
+path = "src/lib.rs"
+
+[[bin]]
+name = "wallet-audit"
+path = "src/main.rs"
 
 [dependencies]
 solana-client = "2.2"
 solana-sdk = "2.2"
 solana-account-decoder = "2.2"
+solana-transaction-status-client-types = "2.2"
 spl-token = "6.0"
-spl-token-2022 = "7.0"
 clap = { version = "4", features = ["derive"] }
-tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 colored = "3"
-anyhow = "1"
-bs58 = "0.5"
+thiserror = "2"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+
+[profile.release]
+strip = true
+lto = "thin"
