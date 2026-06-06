@@ -19,6 +19,24 @@ fn solscan(addr: &str) -> String {
     format!("https://solscan.io/account/{addr}")
 }
 
+/// Hide any credential embedded in an RPC URL (an API key in the path or query
+/// string) so it never reaches the console, logs, or a screenshot. The scheme
+/// and host stay visible for context; anything after the host becomes `/****`.
+/// A keyless endpoint (e.g. the public mainnet RPC) is returned unchanged.
+fn mask_rpc_url(url: &str) -> String {
+    let Some((scheme, rest)) = url.split_once("://") else {
+        return url.to_string();
+    };
+    let host_end = rest.find(['/', '?']).unwrap_or(rest.len());
+    let host = &rest[..host_end];
+    let tail = &rest[host_end..];
+    if tail.is_empty() || tail == "/" {
+        url.to_string()
+    } else {
+        format!("{scheme}://{host}/****")
+    }
+}
+
 fn rule(ch: &str, n: usize) -> String {
     ch.repeat(n).dimmed().to_string()
 }
@@ -31,6 +49,7 @@ pub fn print_banner() {
 }
 
 pub fn print_scanning(target: &str, rpc: &str) {
+    let rpc = mask_rpc_url(rpc);
     println!("  Target: {}", target.green());
     println!("  RPC:    {}\n", rpc.dimmed());
 }
@@ -237,4 +256,33 @@ pub fn print_token_report(scan: &TokenMintScan, report: &RiskReport) {
     println!();
     print_findings(report);
     println!("{}", rule("═", WIDTH));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::mask_rpc_url;
+
+    #[test]
+    fn masks_api_key_in_path() {
+        assert_eq!(
+            mask_rpc_url("https://solana-mainnet.g.alchemy.com/v2/SECRETKEY123"),
+            "https://solana-mainnet.g.alchemy.com/****"
+        );
+    }
+
+    #[test]
+    fn masks_api_key_in_query() {
+        assert_eq!(
+            mask_rpc_url("https://mainnet.helius-rpc.com/?api-key=SECRET"),
+            "https://mainnet.helius-rpc.com/****"
+        );
+    }
+
+    #[test]
+    fn leaves_keyless_endpoint_untouched() {
+        assert_eq!(
+            mask_rpc_url("https://api.mainnet-beta.solana.com"),
+            "https://api.mainnet-beta.solana.com"
+        );
+    }
 }
